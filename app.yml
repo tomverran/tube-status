@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Tube Status resources
+Resources:
+  User:
+    Type: "AWS::IAM::User"
+    Properties:
+      Policies:
+      - PolicyName: allow-cloudwatch
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            Effect: Allow
+            Action:
+            - cloudwatch:Put*
+            - cloudwatch:GetMetricStatistics
+            Resource: "*"

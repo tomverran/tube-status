@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  </head>
+
+  <style>
+    .tube-status {
+      width: 60%;
+      height: 60px;
+      padding: 10px;
+      margin: auto;
+      border-bottom: 5px solid white;
+      font-family: sans-serif;
+      line-height: 60px;
+      font-size: 24px;
+    }
+  </style>
+  <script type="text/javascript">
+    $.getJSON('http://localhost:8080/api', (json) => {
+      json.forEach((info) => {
+        info.branches.forEach((branch) => {
+          $('.container').append(`<div class="tube-status" style="background-color: #${info.line.bg}; color: #${info.line.fg}">${info.line.name} - ${branch.name} ${branch.direction} ${JSON.stringify(branch.level)}</div>`);
+        })
+      })
+    });
+  </script>
+  <div class="container"></div>
+</html>
