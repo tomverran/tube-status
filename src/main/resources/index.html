@@ -9,7 +9,7 @@
 
   </style>
   <script type="text/javascript">
-    $.getJSON('http://localhost:8080/api', (json) => {
+    $.getJSON('/api', (json) => {
       json.forEach((info) => {
         let s = `<div class="tube-status" style="--line-color: #${info.line.bg}"><h1>${info.line.name}</h1><div class="branches">`
         info.branches.forEach(branch => s += `<div class="branch branch-${branch.level}">${branch.name}</div>`);
