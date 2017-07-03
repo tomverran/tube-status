@@ -41,7 +41,7 @@ class Routes(lines: List[Line])(implicit as: ActorSystem, mat: ActorMaterializer
   implicit val encodeLineStatus: Encoder[BranchStatus] = Encoder.instance { c =>
     val level: Json = c.level match {
       case Good(usually, currently) => Json.obj("level" -> "good".asJson, "usually" -> usually.asJson ,"currently" -> currently.asJson)
-      case Bad(usually, currently) => Json.obj("level" -> "good".asJson, "usually" -> usually.asJson ,"currently" -> currently.asJson)
+      case Bad(usually, currently) => Json.obj("level" -> "bad".asJson, "usually" -> usually.asJson ,"currently" -> currently.asJson)
       case NoTrains => Json.obj("level" -> "unknown".asJson)
     }
     Json.obj(
