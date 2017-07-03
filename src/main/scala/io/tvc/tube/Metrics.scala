@@ -2,96 +2,85 @@ package io.tvc.tube
 
 import java.time.{Clock, ZonedDateTime}
 import java.util.Date
-import java.util.concurrent.CompletableFuture
-
-import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient
-import software.amazon.awssdk.services.cloudwatch.model._
+import java.util.concurrent.{CompletableFuture, Executors}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.collection.JavaConverters._
 import cats.syntax.cartesian._
 import cats.instances.future._
+import com.amazonaws.regions.Regions
+import com.amazonaws.services.cloudwatch.{AmazonCloudWatch, AmazonCloudWatchClient}
+import com.amazonaws.services.cloudwatch.model._
 
 object Metrics {
 
-  private val lineBuilder = Dimension.builder.name("Line")
-  private val branchBuilder = Dimension.builder.name("Branch")
-  private val directionBuilder = Dimension.builder.name("Direction")
   private val interval = "interval"
 
-  private val client: CloudWatchAsyncClient =
-    CloudWatchAsyncClient.builder.region(Region.EU_WEST_1).build
+  private val client: AmazonCloudWatch =
+    AmazonCloudWatchClient.builder.withRegion(Regions.EU_WEST_1).build
 
-  private def toScala[T](c: CompletableFuture[T]): Future[T] = {
-    val promise = Promise[T]()
-    c.whenComplete { (r, e) => Option(e).fold(promise.success(r))(promise.failure) }
-    promise.future
-  }
+  private implicit val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(4))
 
   private def intervalToMetrics(s: ServiceInterval): List[MetricDatum] = {
     val commonDimensions = List(
-      lineBuilder.value(s.lineId.value).build,
-      branchBuilder.value(s.branchId.value).build
+      new Dimension().withName("Line").withValue(s.lineId.value),
+      new Dimension().withName("Branch").withValue(s.branchId.value)
     )
     s.intervals.map { case DirectedInterval(direction, int) =>
-      MetricDatum.builder
-        .metricName(interval)
-        .dimensions((directionBuilder.value(direction.id).build :: commonDimensions).asJava)
-        .value(int.toSeconds.toDouble)
-        .build
+      new MetricDatum()
+        .withMetricName(interval)
+        .withDimensions((new Dimension().withName("Direction").withValue(direction.id) :: commonDimensions).asJava)
+        .withValue(int.toSeconds.toDouble)
     }
   }
 
-  private def usualInterval(lineId: LineId, branch: BranchId, direction: Direction)(implicit clock: Clock, ec: ExecutionContext): Future[Option[FiniteDuration]] = {
+  private def usualInterval(lineId: LineId, branch: BranchId, direction: Direction)(implicit clock: Clock): Future[Option[FiniteDuration]] = {
     val now = ZonedDateTime.now(clock)
-    val req = GetMetricStatisticsRequest.builder
-      .dimensions(
-        lineBuilder.value(lineId.value).build,
-        branchBuilder.value(branch.value).build,
-        directionBuilder.value(direction.id).build
+    val req = new GetMetricStatisticsRequest()
+      .withDimensions(
+        new Dimension().withName("Line").withValue(lineId.value),
+        new Dimension().withName("Branch").withValue(branch.value),
+        new Dimension().withName("Direction").withValue(direction.id)
       )
-      .namespace("tube")
-      .metricName("interval")
-      .extendedStatistics("p70")
-      .period(1.day.toSeconds.toInt)
-      .startTime(Date.from(now.minusDays(1).toInstant))
-      .endTime(Date.from(now.toInstant))
-      .build
-    toScala(client.getMetricStatistics(req)).map { resp =>
+      .withNamespace("tube")
+      .withMetricName("interval")
+      .withExtendedStatistics("p70")
+      .withPeriod(1.day.toSeconds.toInt)
+      .withStartTime(Date.from(now.minusDays(1).toInstant))
+      .withEndTime(Date.from(now.toInstant))
+    Future(client.getMetricStatistics(req)).map { resp =>
       for {
-        dataPoint <- resp.datapoints.asScala.headOption
-        p70 <- dataPoint.extendedStatistics.asScala.get("p70")
+        dataPoint <- resp.getDatapoints.asScala.headOption
+        p70 <- dataPoint.getExtendedStatistics.asScala.get("p70")
       } yield p70.toInt.seconds
     }
   }
 
-  private def recentInterval(lineId: LineId, branchId: BranchId, direction: Direction)(implicit clock: Clock, ec: ExecutionContext): Future[Option[FiniteDuration]] = {
+  private def recentInterval(lineId: LineId, branch: BranchId, direction: Direction)(implicit clock: Clock): Future[Option[FiniteDuration]] = {
     val now = ZonedDateTime.now(clock)
-     val req = GetMetricStatisticsRequest.builder
-      .dimensions(
-        lineBuilder.value(lineId.value).build,
-        branchBuilder.value(branchId.value).build,
-        directionBuilder.value(direction.id).build
+    val req = new GetMetricStatisticsRequest()
+      .withDimensions(
+        new Dimension().withName("Line").withValue(lineId.value),
+        new Dimension().withName("Branch").withValue(branch.value),
+        new Dimension().withName("Direction").withValue(direction.id)
       )
-      .namespace("tube")
-      .metricName("interval")
-      .statistics("Average")
-      .period(30.minutes.toSeconds.toInt)
-      .startTime(Date.from(now.minusMinutes(30).toInstant))
-      .endTime(Date.from(now.toInstant))
-      .build
+      .withNamespace("tube")
+      .withMetricName("interval")
+      .withStatistics("Average")
+      .withPeriod(30.minutes.toSeconds.toInt)
+      .withStartTime(Date.from(now.minusMinutes(30).toInstant))
+      .withEndTime(Date.from(now.toInstant))
 
-    toScala(client.getMetricStatistics(req)).map { resp =>
+    Future(client.getMetricStatistics(req)).map { resp =>
       for {
-        dataPoint <- resp.datapoints.asScala.headOption
-        avg <- Option(dataPoint.average)
+        dataPoint <- resp.getDatapoints.asScala.headOption
+        avg <- Option(dataPoint.getAverage)
       } yield avg.toInt.seconds
     }
   }
 
-  def serviceLevels(lines: List[Line])(implicit c: Clock, ec: ExecutionContext): Future[List[LineStatus]] = {
+  def serviceLevels(lines: List[Line])(implicit c: Clock): Future[List[LineStatus]] = {
     val info = for {
       line <- lines
       branch <- line.branches
@@ -117,8 +106,8 @@ object Metrics {
     }.toList.sortBy(_.line.name))
   }
 
-  def put(deps: List[ServiceInterval]): Future[PutMetricDataResponse] = {
-    val request = PutMetricDataRequest.builder.metricData(deps.flatMap(intervalToMetrics).asJava).namespace("tube").build
-    toScala(client.putMetricData(request))
+  def put(deps: List[ServiceInterval]): Future[PutMetricDataResult] = {
+    val request = new PutMetricDataRequest().withMetricData(deps.flatMap(intervalToMetrics).asJava).withNamespace("tube")
+    Future(client.putMetricData(request))
   }
 }

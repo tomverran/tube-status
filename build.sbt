@@ -25,7 +25,7 @@ libraryDependencies ++= Seq(
 
 
 libraryDependencies ++= Seq(
-  "software.amazon.awssdk" % "cloudwatch" % "2.0.0-preview-1"
+  "com.amazonaws" % "aws-java-sdk-cloudwatch" % "1.11.158"
 )
 
 libraryDependencies += "de.heikoseeberger" %% "akka-http-circe" % "1.17.0"
