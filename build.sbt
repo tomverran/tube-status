@@ -4,6 +4,9 @@ version := "1.0"
 
 scalaVersion := "2.12.1"
 
+enablePlugins(JavaServerAppPackaging, SystemdPlugin)
+enablePlugins(DebianPlugin)
+
 libraryDependencies += "com.typesafe.akka" %% "akka-http" % "10.0.9"
 
 libraryDependencies ++= Seq(
