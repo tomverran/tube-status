@@ -114,7 +114,7 @@ object Metrics {
       }
     ).map(_.groupBy(_._1).map { case (line, i) =>
       LineStatus(line, i.map(_._2))
-    }.toList)
+    }.toList.sortBy(_.line.name))
   }
 
   def put(deps: List[ServiceInterval]): Future[PutMetricDataResponse] = {

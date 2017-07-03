@@ -57,8 +57,8 @@ object Main extends App {
     } yield println(departures)
   }
 
-  as.scheduler.schedule(5.minutes, 5.minutes)(runApp)
-  val binding = Routes.forLines(config.lines).recover { case e: Throwable =>
+  as.scheduler.schedule(0.minutes, 5.minutes)(runApp)
+  val binding = new Routes(config.lines).bind(config.port).recover { case e: Throwable =>
     println(e)
     sys.exit()
   }

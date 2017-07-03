@@ -36,7 +36,7 @@ package object tube {
   )
 
   case class BranchId(value: String)
-  case class Branch(id: BranchId, name: String, stopId: String)
+  case class Branch(id: BranchId, name: Option[String], stopId: String)
 
   case class DirectedInterval(direction: Direction, interval: FiniteDuration)
 
@@ -47,7 +47,7 @@ package object tube {
     intervals: List[DirectedInterval]
   )
 
-  case class Config(lines: List[Line])
-  case class BranchStatus(name: String, direction: Direction, level: ServiceLevel)
+  case class Config(port: Int, lines: List[Line])
+  case class BranchStatus(name: Option[String], direction: Direction, level: ServiceLevel)
   case class LineStatus(line: Line, branches: List[BranchStatus])
 }
