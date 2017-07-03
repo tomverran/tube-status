@@ -1,4 +1,5 @@
 package io.tvc.tube
+import java.nio.charset.Charset
 import java.time.Clock
 
 import akka.actor.ActorSystem
@@ -21,6 +22,7 @@ object Main extends App {
   implicit val mat = ActorMaterializer()
   implicit val ec = mat.executionContext
   implicit val clock = Clock.systemUTC
+  println(Charset.defaultCharset.toString)
 
   implicit val readLineId: Read[TypesafeConfig, LineId] = Read.instance { path =>
     ConfigDecoder.instance { config => Right(LineId(config.getString(path))) } // todo guard getString
