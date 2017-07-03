@@ -22,7 +22,6 @@ object Main extends App {
   implicit val mat = ActorMaterializer()
   implicit val ec = mat.executionContext
   implicit val clock = Clock.systemUTC
-  println(Charset.defaultCharset.toString)
 
   implicit val readLineId: Read[TypesafeConfig, LineId] = Read.instance { path =>
     ConfigDecoder.instance { config => Right(LineId(config.getString(path))) } // todo guard getString
@@ -38,10 +37,10 @@ object Main extends App {
     }
   }
 
-  val client = new TflClient()
   val tsConfig: TypesafeConfig = ConfigFactory.load
   val safeConfig = deriveDecoder[TypesafeConfig, Config].decode(tsConfig)
   val config = safeConfig.right.getOrElse(throw new Exception(s"$safeConfig"))
+  val client = new TflClient(config.api)
 
   def runApp: Future[Unit] = {
 

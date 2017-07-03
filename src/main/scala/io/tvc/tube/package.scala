@@ -47,7 +47,8 @@ package object tube {
     intervals: List[DirectedInterval]
   )
 
-  case class Config(port: Int, lines: List[Line])
+  case class ApiConfig(appId: String, appKey: String)
+  case class Config(port: Int, lines: List[Line], api: ApiConfig)
   case class BranchStatus(name: Option[String], direction: Direction, level: ServiceLevel)
   case class LineStatus(line: Line, branches: List[BranchStatus])
 }

@@ -4,8 +4,9 @@ import java.time.{Clock, ZonedDateTime}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.http.scaladsl.model.HttpMethods.GET
+import akka.http.scaladsl.model.Uri.Query
 import akka.stream.ActorMaterializer
 import io.circe.Decoder
 
@@ -16,9 +17,10 @@ import io.circe.parser.decode
 
 import scala.util.Try
 
-class TflClient(implicit a: ActorSystem, m: ActorMaterializer, e: ExecutionContext) {
+class TflClient(config: ApiConfig)(implicit a: ActorSystem, m: ActorMaterializer, e: ExecutionContext) {
 
   private val http = Http()
+  private val credentials = Query("app_id" -> config.appId, "app_key" -> config.appKey)
   private case class Arrival(lineId: String, platformName: String, expectedArrival: ZonedDateTime)
   private implicit val zdtDecode = Decoder.decodeString.emapTry(s => Try(ZonedDateTime.parse(s)))
   private implicit val decoder = deriveDecoder[Arrival]
@@ -53,7 +55,8 @@ class TflClient(implicit a: ActorSystem, m: ActorMaterializer, e: ExecutionConte
   }
 
   def departures(l: LineId, b: Branch)(implicit clock: Clock): Future[Either[io.circe.Error, ServiceInterval]] = {
-    val req = HttpRequest(method = GET, uri = s"https://api.tfl.gov.uk/StopPoint/${b.stopId}/arrivals")
+    val uri = Uri(s"https://api.tfl.gov.uk/StopPoint/${b.stopId}/arrivals").withQuery(credentials)
+    val req = HttpRequest(method = GET, uri = uri)
     for {
       resp <- http.singleRequest(req)
       body <- resp.entity.toStrict(1.second)
