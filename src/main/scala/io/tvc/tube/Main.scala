@@ -56,6 +56,8 @@ object Main extends App {
      departures <- Future.sequence(departures).map(_.flatten.toList)
      result <- Metrics.put(departures)
     } yield println(departures)
+  }.recover { case e: Throwable =>
+    println(e)
   }
 
   as.scheduler.schedule(0.minutes, 5.minutes)(runApp)

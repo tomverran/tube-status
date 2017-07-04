@@ -59,7 +59,7 @@ class TflClient(config: ApiConfig)(implicit a: ActorSystem, m: ActorMaterializer
     val req = HttpRequest(method = GET, uri = uri)
     for {
       resp <- http.singleRequest(req)
-      body <- resp.entity.toStrict(1.second)
+      body <- resp.entity.toStrict(10.seconds)
     } yield {
       val result = decode[List[Arrival]](body.data.decodeString("UTF-8"))
       result.map(arrivalsToIntervals(l, b.id))
