@@ -108,8 +108,7 @@ object Metrics {
 
   def put(deps: List[ServiceInterval]): Future[List[PutMetricDataResult]] = {
     Future.sequence(
-      deps.grouped(10).map { departures =>
-        val metricData = departures.flatMap(intervalToMetrics)
+      deps.flatMap(intervalToMetrics).grouped(20).map { metricData =>
         val request = new PutMetricDataRequest().withMetricData(metricData.asJava).withNamespace("tube")
         Future(client.putMetricData(request))
       }.toList
