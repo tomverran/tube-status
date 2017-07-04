@@ -54,7 +54,7 @@ object Main extends App {
 
     for {
      departures <- Future.sequence(departures).map(_.flatten.toList)
-     result <- Metrics.put(departures)
+     _ <- Metrics.put(departures)
     } yield println(departures)
   }.recover { case e: Throwable =>
     println(e)
