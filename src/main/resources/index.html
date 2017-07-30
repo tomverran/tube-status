@@ -1,21 +1,23 @@
 <!doctype html>
 <html>
   <head>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css"/>
   </head>
-
-  <style>
-
-  </style>
   <script type="text/javascript">
-    $.getJSON('/api', (json) => {
-      json.forEach((info) => {
+
+    async function displayTrains() {
+      const container = document.querySelector('.container');
+      const httpResponse = await fetch('/api');
+      const json = await httpResponse.json();
+
+      json.forEach(info => {
         let s = `<div class="tube-status" style="--line-color: #${info.line.bg}"><h1>${info.line.name}</h1><div class="branches">`
         info.branches.forEach(branch => s += `<div class="branch branch-${branch.level}">${branch.name}</div>`);
-        $('.container').append(s + '</div></div>');
+        container.innerHTML += s + '</div></div>';
       });
-    });
+    }
+
+    document.addEventListener("DOMContentLoaded", displayTrains);
   </script>
   <div class="container"></div>
 </html>
