@@ -44,7 +44,7 @@ object Main extends App {
 
   val client = TflClient.akkaClient(config.api, Http())
 
-  val circle = config.lines.find(_.name == "Circle").get
+  val circle = config.lines.find(_.name == "Victoria").get
   val branch = circle.branches.head
 
   Flow.stream(client, circle.id, branch).compile.drain.unsafeRunSync

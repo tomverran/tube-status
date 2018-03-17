@@ -7,8 +7,10 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.language.higherKinds
 
+
 trait Delay[F[_]] {
-  def delay[A](dur: FiniteDuration): Pipe[F, A, A]
+  def delayStream(dur: FiniteDuration): Stream[F, Unit]
+  def delay[A](dur: FiniteDuration): Pipe[F, A, A] = _.flatMap(f => delayStream(dur).map(_ => f))
 }
 
 object Delay {
@@ -17,9 +19,5 @@ object Delay {
     implicitly
 
   def fs2NativeDelay[F[_] : Effect](scheduler: Stream[F, Scheduler])(implicit e: ExecutionContext): Delay[F] =
-    new Delay[F] {
-      override def delay[A](dur: FiniteDuration): Pipe[F, A, A] =
-        stream => scheduler.flatMap(s => s.sleep(dur).flatMap(_ => stream))
-
-    }
+    (dur: FiniteDuration) => scheduler.flatMap(s => s.sleep(dur))
 }
