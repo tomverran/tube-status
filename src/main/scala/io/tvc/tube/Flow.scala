@@ -2,15 +2,39 @@ package io.tvc.tube
 
 import java.time.{Clock, Duration => JDuration}
 
-import cats.effect.Sync
+import cats.effect.{Effect, Sync}
 import cats.syntax.applicative._
+import cats.syntax.functor._
+import fs2.async.mutable.Queue
 import fs2.{Pipe, Stream}
 import io.tvc.tube.TflClient.Arrival
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.higherKinds
 
 object Flow {
+
+  case class SuspendedQueue[F[_]](q: Queue[F, DirectedInterval], run: F[Unit])
+
+  /**
+    * Grim function that lets us break out service intervals from an FS2 stream
+    * by writing them into a mutable queue. This returns the queue + the stream to run to fill it
+    * both wrapped in the effect type F
+    */
+  def queue[F[_] : Effect : Delay](
+    client: TflClient[F],
+    lineId: LineId,
+    branch: Branch
+  )(
+    implicit
+    clock: Clock,
+    ec: ExecutionContext
+  ): F[SuspendedQueue[F]] = {
+    for {
+      q <- Queue.circularBuffer[F, DirectedInterval](maxSize = 10)
+    } yield SuspendedQueue(q, stream(client, lineId, branch).to(q.enqueue).compile.drain)
+  }
 
   /**
     * Monitor the arrivals to the given line & branch
@@ -70,6 +94,6 @@ object Flow {
         arrival <- stream
         arrivalTime = arrival.expectedArrival.toInstant
         sleepTime = Math.max(JDuration.between(clock.instant, arrivalTime).getSeconds, 10).seconds
-        _ <- Stream.eval(().pure[F]).through(Delay[F].delay(sleepTime))
+        _ <- Delay[F].delayStream(sleepTime)
       } yield arrival
 }

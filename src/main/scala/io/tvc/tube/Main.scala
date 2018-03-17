@@ -1,17 +1,16 @@
 package io.tvc.tube
-import java.nio.charset.Charset
-import java.time.{Clock, Duration}
+import java.time.Clock
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import cats.effect.IO
-import classy.generic._
 import classy.Read
-import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
 import classy.config._
 import classy.decoders._
-import fs2.{Scheduler, Sink}
+import classy.generic._
+import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
+import fs2.Scheduler
 import fs2.async.mutable.Queue
 
 import scala.collection.JavaConverters._
@@ -47,5 +46,8 @@ object Main extends App {
   val circle = config.lines.find(_.name == "Victoria").get
   val branch = circle.branches.head
 
-  Flow.stream(client, circle.id, branch).compile.drain.unsafeRunSync
+  val io: IO[Queue[IO, DirectedInterval]] = for {
+    suspended <- Flow.queue(client, circle.id, branch)
+    _ <- suspended.run.runAsync(IO.fromEither)
+  } yield suspended.q
 }
