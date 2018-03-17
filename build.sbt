@@ -2,7 +2,7 @@ name := "tubestatus"
 
 version := "1.0"
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.4"
 
 enablePlugins(JavaServerAppPackaging, SystemdPlugin)
 enablePlugins(DebianPlugin)
@@ -15,7 +15,7 @@ libraryDependencies ++= Seq(
   "com.47deg" %% "classy-generic"         % "0.4.0"
 )
 
-val circeVersion = "0.8.0"
+val circeVersion = "0.9.0"
 
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core",
@@ -29,3 +29,6 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies += "de.heikoseeberger" %% "akka-http-circe" % "1.17.0"
+libraryDependencies += "org.typelevel" %% "cats-effect" % "0.10"
+libraryDependencies += "co.fs2" %% "fs2-core" % "0.10.1"
+libraryDependencies += "co.fs2" %% "fs2-io" % "0.10.1"
